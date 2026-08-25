@@ -367,6 +367,7 @@ impl From<&DiffText<'_>> for HighlightKind {
 
 pub enum ContextItem {
     Copy { value: String, label: Option<String>, copy_string: Option<String> },
+    Replace { target: String, base: String },
     Navigate { label: String, symbol_index: usize, kind: SymbolNavigationKind },
     Separator,
 }
@@ -561,6 +562,14 @@ pub fn data_row_context(obj: &Object, diff_row: &DataDiffRow) -> Vec<ContextItem
 
         let reloc = resolve_relocation(&obj.symbols, reloc);
         out.append(&mut relocation_context(obj, reloc, None, None));
+        if reloc_diff.kind == DataDiffKind::Replace {
+            if let Some(target) = &reloc_diff.target {
+                out.push(ContextItem::Replace {
+                    target: reloc.symbol.name.clone(),
+                    base: target.clone(),
+                });
+            }
+        }
         out.push(ContextItem::Separator);
     }
     out

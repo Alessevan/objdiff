@@ -75,6 +75,8 @@ pub enum DiffViewAction {
     ClearDiffHighlight,
     /// Replace a left symbol by a right symbol
     ReplaceSymbol(usize),
+    /// Replace a symbol by the right one at the exact position
+    ReplacePosition(String, String),
     /// Start selecting a left symbol for mapping.
     /// The symbol reference is the right symbol to map to.
     SelectingLeft(SymbolRefByName),
@@ -510,6 +512,13 @@ impl DiffViewState {
                 };
 
                 state.replace_symbols(target_symbol_name, base_symbol_name);
+            }
+            DiffViewAction::ReplacePosition(target, base) => {
+                let Ok(state) = state.read() else {
+                    return;
+                };
+                println!("{} VS {}", target, base);
+                state.replace_symbols(target, base);
             }
         }
     }
