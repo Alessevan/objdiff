@@ -17,7 +17,6 @@ use objdiff_core::{
 use time::format_description;
 
 use crate::{
-    app::AppStateRef,
     hotkeys,
     views::{
         appearance::Appearance,
