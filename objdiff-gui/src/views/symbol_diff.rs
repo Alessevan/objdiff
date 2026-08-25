@@ -73,6 +73,8 @@ pub enum DiffViewAction {
     SetDiffHighlight(usize, HighlightKind),
     /// Clear the highlight for all diff columns
     ClearDiffHighlight,
+    /// Replace a left symbol by a right symbol
+    ReplaceSymbol(usize),
     /// Start selecting a left symbol for mapping.
     /// The symbol reference is the right symbol to map to.
     SelectingLeft(SymbolRefByName),
@@ -491,6 +493,24 @@ impl DiffViewState {
                 let Ok(state_guard) = state.read() else { return };
                 start_find_similar_job(ctx, jobs, &state_guard, source_symbol_name, column);
             }
+            DiffViewAction::ReplaceSymbol(symbol_idx) => {
+                let Some(result) = self.build.as_deref() else { return };
+                let Some((target_obj, _)) = result.first_obj.as_ref() else {
+                    return;
+                };
+                let Some(target_symbol) = target_obj.symbols.get(symbol_idx) else { return };
+                let target_symbol_name = target_symbol.name.clone();
+
+                let Ok(state) = state.read() else {
+                    return;
+                };
+
+                let Some(base_symbol_name) = state.get_symbol_mapping(&target_symbol_name) else {
+                    return;
+                };
+
+                state.replace_symbols(target_symbol_name, base_symbol_name);
+            }
         }
     }
 
@@ -647,6 +667,11 @@ pub fn symbol_context_menu_ui(
             } else {
                 ret = Some(DiffViewAction::SelectingLeft(symbol_ref));
             }
+            ui.close();
+        }
+
+        if column == 0 && ui.button("Replace symbol").clicked() {
+            ret = Some(DiffViewAction::ReplaceSymbol(symbol_idx));
             ui.close();
         }
 

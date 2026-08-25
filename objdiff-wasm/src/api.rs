@@ -722,6 +722,7 @@ impl From<diff::display::ContextItem> for ContextItem {
                 })
             }
             diff::display::ContextItem::Separator => ContextItem::Separator,
+            _ => ContextItem::Separator,
         }
     }
 }

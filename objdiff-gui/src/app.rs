@@ -3,6 +3,7 @@ use std::{
     default::Default,
     fs,
     path::{Path, PathBuf},
+    process::Command,
     rc::Rc,
     sync::{
         Arc, Mutex, RwLock,
@@ -388,6 +389,39 @@ impl AppState {
         }
         self.queue_reload = true;
         self.save_config();
+    }
+
+    pub fn get_symbol_mapping(&self, left: &String) -> Option<String> {
+        let Some(object) = self.config.selected_obj.as_ref() else {
+            log::warn!("No selected object");
+            return None;
+        };
+        object.symbol_mappings.get(left).map(|s| s.clone())
+    }
+
+    pub fn replace_symbols(&self, left: String, right: String) {
+        let Some(dir) = self.config.project_dir.clone() else {
+            return;
+        };
+
+        println!("Executing command: `sed -i 's/{}/{}/g' {}/**/*.txt`", left, right, dir);
+
+        let output = Command::new("/usr/bin/find")
+            .arg(format!("{}", dir))
+            .arg("-type")
+            .arg("f")
+            .arg("-name")
+            .arg("symbols.txt")
+            .arg("-exec")
+            .arg("/usr/bin/sed")
+            .arg("-i")
+            .arg(format!("s/{}/{}/g", left, right))
+            .arg("{}")
+            .arg("+")
+            .output()
+            .unwrap();
+
+        eprintln!("STDERR: {}", str::from_utf8(output.stderr.as_slice()).unwrap());
     }
 
     pub fn clear_selection(&mut self) {
