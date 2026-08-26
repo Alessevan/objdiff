@@ -36,7 +36,7 @@ fn data_row_context_menu(
     ui.scope(|ui| {
         ui.style_mut().override_text_style = Some(egui::TextStyle::Monospace);
         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
-        context_menu_items_ui(ui, data_row_context(obj, diff_row), column, appearance)
+        context_menu_items_ui(ui, data_row_context(obj, diff_row, Some(column)), column, appearance)
     })
     .inner
 }
