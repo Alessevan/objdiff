@@ -402,6 +402,7 @@ impl AppState {
 
     pub fn replace_symbols(&self, left: String, right: String) {
         let Some(dir) = self.config.project_dir.clone() else {
+            log::warn!("No directory found.");
             return;
         };
 
@@ -435,6 +436,7 @@ impl AppState {
         symbol_name: &String,
     ) -> Option<String> {
         let Some(dir) = self.config.project_dir.clone() else {
+            log::warn!("No directory found.");
             return None;
         };
 
