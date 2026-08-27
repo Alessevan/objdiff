@@ -25,6 +25,7 @@ use objdiff_core::{
     diff::DiffObjConfig,
     jobs::{Job, JobQueue, JobResult},
 };
+use regex::Regex;
 use time::UtcOffset;
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf};
 
@@ -404,7 +405,7 @@ impl AppState {
             return;
         };
 
-        println!("Executing command: `sed -i 's/{}/{}/g' {}/**/*.txt`", left, right, dir);
+        log::info!("Executing command: `sed -i 's/{}/{}/g' {}/config/**/*.txt`", left, right, dir);
 
         let output = Command::new("/usr/bin/find")
             .arg(format!("{}", dir))
@@ -421,7 +422,53 @@ impl AppState {
             .output()
             .unwrap();
 
-        eprintln!("STDERR: {}", str::from_utf8(output.stderr.as_slice()).unwrap());
+        if let Ok(stderr) = str::from_utf8(output.stderr.as_slice()).map(String::from)
+            && stderr.len() > 0
+        {
+            log::error!("STDERR: {}", stderr);
+        }
+    }
+
+    pub fn get_real_symbol_address(
+        &self,
+        version: &String,
+        symbol_name: &String,
+    ) -> Option<String> {
+        let Some(dir) = self.config.project_dir.clone() else {
+            return None;
+        };
+
+        let path = format!("{}/config/{}", dir, version);
+        log::info!("Searching for symbol `{}` address in `{}`...", symbol_name, path);
+
+        let output = Command::new("/usr/bin/grep")
+            .arg("-R")
+            .arg(format!("{}", symbol_name))
+            .arg(format!("{}", path))
+            .output()
+            .unwrap();
+
+        if let Ok(stderr) = str::from_utf8(output.stderr.as_slice()).map(String::from)
+            && stderr.len() > 0
+        {
+            log::error!("STDERR: {}", stderr);
+        }
+
+        let Ok(stdout) = str::from_utf8(output.stdout.as_slice()).map(String::from) else {
+            return None;
+        };
+
+        if stdout.len() == 0 {
+            return None;
+        }
+
+        let re = Regex::new(r"addr:(0x[0-9a-fA-F]+)").unwrap();
+
+        if let Some((_, [match_str])) = re.captures(&stdout).map(|c| c.extract()) {
+            return Some(String::from(match_str));
+        }
+
+        return None;
     }
 
     pub fn clear_selection(&mut self) {

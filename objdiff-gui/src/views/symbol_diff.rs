@@ -112,6 +112,8 @@ pub enum DiffViewAction {
     },
     /// Only show results from the same object as the source symbol.
     SetSimilarSameObjectOnly(bool),
+    /// Get real address of a symbol
+    GetRealAddress(usize),
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
@@ -517,8 +519,28 @@ impl DiffViewState {
                 let Ok(state) = state.read() else {
                     return;
                 };
-                println!("{} VS {}", target, base);
                 state.replace_symbols(target, base);
+            }
+            DiffViewAction::GetRealAddress(symbol_idx) => {
+                let Ok(state) = state.read() else {
+                    return;
+                };
+                let Some(result) = self.build.as_deref() else { return };
+                let Some((target_obj, _)) = result.first_obj.as_ref() else {
+                    return;
+                };
+                let Some(target_symbol) = target_obj.symbols.get(symbol_idx) else {
+                    return;
+                };
+
+                let Some(version) = self.object_name.split("/").next().map(String::from) else {
+                    return;
+                };
+
+                if let Some(address) = state.get_real_symbol_address(&version, &target_symbol.name)
+                {
+                    ctx.copy_text(address);
+                }
             }
         }
     }
@@ -681,6 +703,11 @@ pub fn symbol_context_menu_ui(
 
         if column == 0 && ui.button("Replace symbol").clicked() {
             ret = Some(DiffViewAction::ReplaceSymbol(symbol_idx));
+            ui.close();
+        }
+
+        if column == 0 && ui.button("Copy real address").clicked() {
+            ret = Some(DiffViewAction::GetRealAddress(symbol_idx));
             ui.close();
         }
 
